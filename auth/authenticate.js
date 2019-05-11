@@ -1,28 +1,37 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
-const secrets = require("../config/secrets.js");
+const jwtKey = process.env.SECRET;
 
 // quickly see what this file exports
 module.exports = {
-  authenticate
+  makeToken,
+  authenticate,
 };
 
 // implementation details
+function makeToken(user){
+  const payload = {
+    sub: user.id,
+    name: user.username,
+  };
+  const options = {
+    expiresIn: '2h'
+  };
+  return jwt.sign(payload, jwtKey, options);
+};
+
 function authenticate(req, res, next) {
-  const token = req.headers.authorization;
-
+  const token = req.get('Authorization');
   if (token) {
-    jwt.verify(token, secrets.jwtKey, (err, decodedToken) => {
+    jwt.verify(token, jwtKey, (err, decoded) => {
       if (err) return res.status(401).json(err);
-
-      req.decodedJwt = decodedToken;
-      console.log("decoded token", req.decodedJwt);
-
+      req.decoded = decoded;
       next();
     });
   } else {
     return res.status(401).json({
-      error: "No token provided, must be set on the Authorization Header"
+      error: 'No token provided, must be set on the Authorization Header',
     });
   }
 }
